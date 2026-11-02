@@ -50,6 +50,23 @@
 
     <!-- Ajustes -->
     <div class="tarjeta ajustes">
+      <h2>📐 Formato del vídeo</h2>
+      <select id="vFormato">
+        <option value="horizontal">▭ Horizontal 16:9 · YouTube, web, proyector</option>
+        <option value="vertical">▯ Vertical 9:16 · Reels, Historias, TikTok, Shorts</option>
+        <option value="cuadrado">◻ Cuadrado 1:1 · Publicación de Instagram</option>
+        <option value="retrato">▯ Vertical 4:5 · Publicación de Instagram</option>
+        <option value="auto">🎞️ Igual que el primer vídeo</option>
+      </select>
+      <label>Si el vídeo no tiene esa forma:
+        <select id="vEncaje">
+          <option value="difuminado">Fondo difuminado (recomendado)</option>
+          <option value="rellenar">Rellenar (recorta los bordes)</option>
+          <option value="bandas">Bandas negras</option>
+        </select>
+      </label>
+      <p id="vInfoFormato" class="ayuda"></p>
+
       <h2>🍒 Entradilla de Radio Pikota</h2>
       <div class="fila">
         <button id="vEntInicio" class="interruptor">🍒 Al inicio</button>

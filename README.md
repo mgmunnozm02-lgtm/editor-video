@@ -3,6 +3,7 @@
 App web para editar **vídeos y podcasts** del IES Valle del Jerte con la imagen de Radio Pikota. Funciona en el navegador, sin instalar nada. Los archivos no se suben a ningún servidor: todo se procesa en tu ordenador.
 
 ## 🎬 Pestaña Vídeo
+- 📐 Formato: horizontal 16:9 (YouTube), vertical 9:16 (Reels, Historias, TikTok, Shorts), cuadrado 1:1 o vertical 4:5 (Instagram), con fondo difuminado, relleno o bandas negras
 - Varios clips en un mismo montaje: se pueden ordenar y recortar
 - Transiciones entre clips: fundido, fundido a negro, deslizar, zoom o corte directo
 - 🍒 Entradilla de Radio Pikota al inicio y/o al final, con cortinilla animada del logo

@@ -135,14 +135,37 @@ async function agregarClip(archivo) {
   vistaFija();
 }
 
-/* El lienzo toma el tamaño del primer vídeo (máximo 1920 de ancho) */
+/* =========================================================
+   FORMATO: tamaño del vídeo final según dónde se va a publicar
+   ========================================================= */
+const FORMATOS = {
+  horizontal: { w: 1920, h: 1080, texto: '1920 × 1080 px · ideal para YouTube y para proyectar en clase.' },
+  vertical:   { w: 1080, h: 1920, texto: '1080 × 1920 px · ideal para Reels, Historias, TikTok y Shorts. Los logos suben un poco para que no los tapen los botones de la red social.' },
+  cuadrado:   { w: 1080, h: 1080, texto: '1080 × 1080 px · publicación cuadrada de Instagram.' },
+  retrato:    { w: 1080, h: 1350, texto: '1080 × 1350 px · publicación vertical de Instagram.' }
+};
+
 function ajustarLienzo() {
-  const v = V.clips[0] ? V.clips[0].video : null;
-  let w = v && v.videoWidth ? v.videoWidth : 1280, h = v && v.videoHeight ? v.videoHeight : 720;
-  if (w > 1920) { h = h * 1920 / w; w = 1920; }
+  const f = FORMATOS[$('vFormato').value];
+  let w, h;
+  if (f) { w = f.w; h = f.h; }
+  else {
+    // "Igual que el primer vídeo" (como mucho 1920 px por el lado largo)
+    const v = V.clips[0] ? V.clips[0].video : null;
+    w = v && v.videoWidth ? v.videoWidth : 1920;
+    h = v && v.videoHeight ? v.videoHeight : 1080;
+    const e = Math.min(1, 1920 / Math.max(w, h));
+    w *= e; h *= e;
+  }
   lienzo.width = Math.round(w / 2) * 2;
   lienzo.height = Math.round(h / 2) * 2;
+  $('vInfoFormato').textContent = f ? f.texto : `${lienzo.width} × ${lienzo.height} px · la forma del primer vídeo.`;
 }
+$('vFormato').addEventListener('change', () => { ajustarLienzo(); vistaFija(); });
+$('vEncaje').addEventListener('change', vistaFija);
+
+/* En vertical, Instagram y TikTok tapan la parte de abajo con sus botones */
+const esVertical = () => lienzo.height > lienzo.width * 1.5;
 
 /* =========================================================
    LISTA DE CLIPS (ordenar, recortar, transiciones)
@@ -309,14 +332,36 @@ function filtroCSS() {
          `saturate(${$('vSaturacion').value}%) grayscale(${$('vBN').value}%)`;
 }
 
-/* Dibuja un vídeo encajado (sin deformar) con bandas negras si hace falta */
-function dibujarVideoEn(c, video, W, H) {
+/* Dibuja un vídeo en el lienzo sin deformarlo:
+   - bandas: se ve entero, con bandas negras
+   - rellenar: ocupa todo y se recortan los bordes
+   - difuminado: se ve entero sobre una copia ampliada y borrosa */
+const lienzoBorroso = document.createElement('canvas');
+function dibujarVideoEn(c, video, W, H, modo = 'bandas') {
   c.fillStyle = '#000';
   c.fillRect(0, 0, W, H);
   if (!video.videoWidth) return;
-  const e = Math.min(W / video.videoWidth, H / video.videoHeight);
-  const w = video.videoWidth * e, h = video.videoHeight * e;
-  c.drawImage(video, (W - w) / 2, (H - h) / 2, w, h);
+  const vw = video.videoWidth, vh = video.videoHeight;
+  const cubrir = Math.max(W / vw, H / vh), encajar = Math.min(W / vw, H / vh);
+  if (modo === 'rellenar') {
+    c.drawImage(video, (W - vw * cubrir) / 2, (H - vh * cubrir) / 2, vw * cubrir, vh * cubrir);
+    return;
+  }
+  if (modo === 'difuminado' && Math.abs(cubrir - encajar) > 0.01) {
+    // Truco rápido para difuminar: se dibuja muy pequeño y luego se amplía
+    lienzoBorroso.width = Math.max(8, Math.round(W / 24));
+    lienzoBorroso.height = Math.max(8, Math.round(H / 24));
+    const b = lienzoBorroso.getContext('2d');
+    const e = cubrir / 24;
+    b.drawImage(video, (lienzoBorroso.width - vw * e) / 2, (lienzoBorroso.height - vh * e) / 2, vw * e, vh * e);
+    c.save();
+    c.imageSmoothingQuality = 'high';
+    c.drawImage(lienzoBorroso, 0, 0, W, H);
+    c.fillStyle = 'rgba(0,0,0,0.35)';
+    c.fillRect(0, 0, W, H);
+    c.restore();
+  }
+  c.drawImage(video, (W - vw * encajar) / 2, (H - vh * encajar) / 2, vw * encajar, vh * encajar);
 }
 
 function dibujarCortinilla(local) {
@@ -337,7 +382,7 @@ function dibujarCortinilla(local) {
   c.save();
   c.globalAlpha *= 0.35;
   c.fillStyle = grad;
-  const barras = 56, bw = W / barras * 0.45;
+  const barras = W > H ? 56 : 28, bw = W / barras * 0.45;
   for (let i = 0; i < barras; i++) {
     const x = W * (i + 0.5) / barras;
     const h = H * (0.05 + 0.3 * Math.abs(Math.sin(local * 3.2 + i * 0.55)) * (0.4 + 0.6 * Math.abs(Math.sin(i * 0.23 + local))));
@@ -354,7 +399,7 @@ function dibujarCortinilla(local) {
     c.globalAlpha *= a;
     c.drawImage(logoPikota, (W - lw) / 2, (H - lh) / 2 - H * 0.04, lw, lh);
     c.fillStyle = '#7a6a6c';
-    c.font = `600 ${Math.round(H / 26)}px system-ui, sans-serif`;
+    c.font = `600 ${Math.round(Math.min(W, H) / 26)}px system-ui, sans-serif`;
     c.textAlign = 'center';
     c.fillText('IES Valle del Jerte', W / 2, H * 0.9);
     c.restore();
@@ -367,14 +412,20 @@ function dibujarSuperpuestos() {
   const arribaLogos = dibujarLogos();
   const texto = $('vTitulo').value.trim();
   if (texto) {
-    const tam = Math.round(H / 12);
+    // El tamaño depende del lado corto y se reduce si el título no cabe
+    let tam = Math.round(Math.min(W, H) / 12);
     c.font = `bold ${tam}px system-ui, sans-serif`;
+    while (c.measureText(texto).width > W * 0.9 && tam > 12) {
+      tam = Math.round(tam * 0.9);
+      c.font = `bold ${tam}px system-ui, sans-serif`;
+    }
     c.textAlign = 'center';
     c.lineWidth = tam / 8;
     c.lineJoin = 'round';
     c.strokeStyle = 'rgba(0,0,0,0.7)';
     c.fillStyle = $('vColorTitulo').value;
-    let y = $('vPosTitulo').value === 'arriba' ? tam * 1.4 : H - tam * 0.8;
+    const margenVertical = esVertical() ? H * 0.12 : 0;   // zona que tapan las redes en vertical
+    let y = $('vPosTitulo').value === 'arriba' ? tam * 1.4 + (esVertical() ? H * 0.08 : 0) : H - tam * 0.8 - margenVertical;
     if ($('vPosTitulo').value === 'abajo') y = Math.min(y, arribaLogos - tam * 0.4);
     c.strokeText(texto, W / 2, y);
     c.fillText(texto, W / 2, y);
@@ -385,12 +436,13 @@ function dibujarLogos() {
   const W = lienzo.width, H = lienzo.height, c = ctxV;
   const elegidos = logosV.filter(l => l.casilla.checked && l.img.complete);
   if (!elegidos.length) return H;
-  const alto = H * $('vTamLogo').value / 100;
-  const margen = H * 0.03, hueco = alto * 0.15, relleno = alto * 0.1;
+  const base = Math.min(W, H);
+  const alto = base * $('vTamLogo').value / 100;
+  const margen = base * 0.03, hueco = alto * 0.15, relleno = alto * 0.1;
   const anchos = elegidos.map(l => alto * l.img.naturalWidth / l.img.naturalHeight);
   const anchoTotal = anchos.reduce((a, b) => a + b, 0) + hueco * (elegidos.length - 1);
   let x = W - margen - relleno - anchoTotal;
-  const y = H - margen - relleno - alto;
+  const y = H - margen - relleno - alto - (esVertical() ? H * 0.12 : 0);
   if ($('vFondoLogo').checked) {
     c.fillStyle = 'rgba(255,255,255,0.88)';
     c.beginPath();
@@ -419,7 +471,7 @@ function dibujarFotograma(t) {
     }
     if (it.tipo === 'clip') {
       ctxV.filter = filtroCSS();
-      dibujarVideoEn(ctxV, it.clip.video, W, H);
+      dibujarVideoEn(ctxV, it.clip.video, W, H, $('vEncaje').value);
       ctxV.filter = 'none';
       hayClip = true;
     } else {
@@ -437,7 +489,7 @@ function vistaFija() {
   const c = V.clips.find(x => x.id === V.sel);
   if (!c) { dibujarCortinilla(2); return; }
   ctxV.filter = filtroCSS();
-  dibujarVideoEn(ctxV, c.video, lienzo.width, lienzo.height);
+  dibujarVideoEn(ctxV, c.video, lienzo.width, lienzo.height, $('vEncaje').value);
   ctxV.filter = 'none';
   dibujarSuperpuestos();
 }
@@ -592,7 +644,7 @@ $('vExportar').addEventListener('click', async () => {
     actualizarBotones();
     if (V.cancelado) { V.cancelado = false; $('vEstado').textContent = 'Exportación cancelada.'; return; }
     const ext = V.grabador.mimeType.includes('mp4') ? 'mp4' : 'webm';
-    descargar(new Blob(trozos, { type: V.grabador.mimeType }), `video-radio-pikota.${ext}`);
+    descargar(new Blob(trozos, { type: V.grabador.mimeType }), `video-radio-pikota-${$('vFormato').value}.${ext}`);
     $('vEstado').textContent = `✅ ¡Hecho! Tu vídeo se ha descargado (${ext.toUpperCase()}).`;
     avisar('✅ Vídeo exportado', 'ok');
   };
@@ -668,5 +720,6 @@ $('vEnviarPodcast').addEventListener('click', async () => {
   avisar('🎙️ Audio del vídeo añadido al podcast', 'ok');
 });
 
+ajustarLienzo();
 actualizarTiempo(0);
 vistaFija();
