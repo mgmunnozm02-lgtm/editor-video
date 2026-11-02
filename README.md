@@ -7,6 +7,8 @@ App web para editar **vídeos y podcasts** del IES Valle del Jerte con la imagen
 - Varios clips en un mismo montaje: se pueden ordenar y recortar
 - Transiciones entre clips: fundido, fundido a negro, deslizar, zoom o corte directo
 - 🍒 Entradilla de Radio Pikota al inicio y/o al final, con cortinilla animada del logo
+- 🎵 Música de fondo: volumen propio, elegir desde qué segundo empieza, repetir si es corta y bajar sola cuando alguien habla
+- Volumen del sonido original de los vídeos
 - Filtros (brillo, contraste, saturación, blanco y negro) y velocidad
 - Título encima del vídeo
 - Logos en la esquina inferior derecha: IES Valle del Jerte, Radio Pikota y Frecuencia Maker

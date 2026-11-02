@@ -28,8 +28,12 @@ const almacenVideos = document.createElement('div');
 almacenVideos.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden';
 document.body.append(almacenVideos);
 
-/* Mezclador de sonido de la pestaña vídeo */
-let mezclaV = null, destinoV = null;
+/* Mezclador de sonido de la pestaña vídeo
+   vídeos → busVoz ─┬→ mezclaV → altavoces y grabación
+                    └→ analizador (¿alguien habla?)
+   música → bajada automática → volumen música → mezclaV */
+let mezclaV = null, destinoV = null, busVoz = null, analizador = null, bajadaMusica = null, volMusica = null;
+const BAJADA = 0.35;   // cuánto se queda la música cuando se habla (35 %)
 function asegurarAudioVideo() {
   const ac = obtenerAudioCtx();
   if (!mezclaV) {
@@ -37,6 +41,17 @@ function asegurarAudioVideo() {
     mezclaV.connect(ac.destination);          // para oírlo
     destinoV = ac.createMediaStreamDestination();
     mezclaV.connect(destinoV);                // para grabarlo al exportar
+    busVoz = ac.createGain();
+    busVoz.gain.value = $('vVolOriginal').value / 100;
+    busVoz.connect(mezclaV);
+    analizador = ac.createAnalyser();
+    analizador.fftSize = 2048;
+    busVoz.connect(analizador);
+    bajadaMusica = ac.createGain();
+    volMusica = ac.createGain();
+    volMusica.gain.value = $('vVolMusica').value / 100;
+    bajadaMusica.connect(volMusica);
+    volMusica.connect(mezclaV);
   }
   return ac;
 }
@@ -110,7 +125,7 @@ async function agregarClip(archivo) {
   const ganancia = ac.createGain();
   ganancia.gain.value = 0;
   fuente.connect(ganancia);
-  ganancia.connect(mezclaV);
+  ganancia.connect(busVoz);
 
   const duracion = video.duration;
   const clip = {
@@ -300,7 +315,11 @@ function calcularPlan() {
     t = t - d + ent;
   }
   items.forEach((it, i) => { it.sig = items[i + 1] || null; });
-  return { items, total: t, vel };
+  // La música suena desde el primer clip hasta el final del último
+  const clips = items.filter(it => it.tipo === 'clip');
+  const musIni = clips.length ? clips[0].inicio : 0;
+  const musFin = clips.length ? clips[clips.length - 1].inicio + clips[clips.length - 1].dur : 0;
+  return { items, total: t, vel, musIni, musFin };
 }
 
 /* Cómo se ve y se oye cada elemento en el segundo t (transiciones) */
@@ -524,6 +543,80 @@ $('vEntInicio').addEventListener('click', e => alternarEntradilla('entInicio', e
 $('vEntFinal').addEventListener('click', e => alternarEntradilla('entFinal', e.currentTarget));
 
 /* =========================================================
+   MÚSICA DE FONDO
+   ========================================================= */
+$('vMusicaArchivo').addEventListener('change', async () => {
+  const a = $('vMusicaArchivo').files[0];
+  $('vMusicaArchivo').value = '';
+  if (!a) return;
+  try {
+    V.musica = await decodificar(await a.arrayBuffer());
+    V.musicaNombre = a.name;
+    $('vMusicaNombre').textContent = `🎵 ${a.name} (${formatear(V.musica.duration)})`;
+    $('vMusIni').max = Math.max(0, Math.floor(V.musica.duration - 1));
+    $('vMusIni').value = 0;
+    $('vValMusIni').textContent = '0';
+    $('vMusicaAjustes').hidden = false;
+    $('vQuitarMusica').hidden = false;
+    avisar('🎵 Música añadida', 'ok');
+    if (V.reproduciendo) { const t = tiempoActual(); detener(); reproducir(t); }
+  } catch (e) { avisar('No se ha podido abrir esa música', 'error'); }
+});
+$('vQuitarMusica').addEventListener('click', () => {
+  V.musica = null;
+  $('vMusicaNombre').textContent = 'Sin música. Sonará desde el primer clip hasta el último (no encima de la entradilla).';
+  $('vMusicaAjustes').hidden = true;
+  $('vQuitarMusica').hidden = true;
+  if (V.reproduciendo) { const t = tiempoActual(); detener(); reproducir(t); }
+});
+$('vVolMusica').addEventListener('input', () => {
+  $('vValMusica').textContent = $('vVolMusica').value;
+  if (volMusica) volMusica.gain.value = $('vVolMusica').value / 100;
+});
+$('vVolOriginal').addEventListener('input', () => {
+  $('vValOriginal').textContent = $('vVolOriginal').value;
+  if (busVoz) busVoz.gain.value = $('vVolOriginal').value / 100;
+});
+$('vMusIni').addEventListener('input', () => { $('vValMusIni').textContent = $('vMusIni').value; });
+
+/* En qué segundo de la canción estamos cuando el montaje va por "t" */
+function posicionMusica(t, plan) {
+  const ini = +$('vMusIni').value, dur = V.musica.duration;
+  let pos = ini + Math.max(0, t - plan.musIni);
+  if (pos >= dur) {
+    if (!$('vRepetirMusica').checked) return null;
+    pos = ini + ((pos - ini) % (dur - ini));
+  }
+  return pos;
+}
+
+/* Programa la música con su fundido de entrada (1 s) y de salida (2 s) */
+function programarMusica(ac, destino, plan, origen, desde) {
+  if (!V.musica || plan.musFin <= plan.musIni || desde >= plan.musFin) return null;
+  const empieza = Math.max(desde, plan.musIni);
+  const pos = posicionMusica(empieza, plan);
+  if (pos === null) return null;
+  const s = ac.createBufferSource();
+  s.buffer = V.musica;
+  if ($('vRepetirMusica').checked) {
+    s.loop = true;
+    s.loopStart = +$('vMusIni').value;
+    s.loopEnd = V.musica.duration;
+  }
+  const fundido = ac.createGain();
+  s.connect(fundido);
+  fundido.connect(destino);
+  const aCtx = t => origen + (t - desde);
+  const valor = t => Math.max(0, Math.min(1, (t - plan.musIni) / 1, (plan.musFin - t) / 2));
+  fundido.gain.setValueAtTime(valor(empieza), aCtx(empieza));
+  [plan.musIni + 1, plan.musFin - 2, plan.musFin].filter(p => p > empieza).sort((a, b) => a - b)
+    .forEach(p => fundido.gain.linearRampToValueAtTime(valor(p), aCtx(p)));
+  s.start(aCtx(empieza), pos);
+  s.stop(aCtx(plan.musFin));
+  return s;
+}
+
+/* =========================================================
    REPRODUCIR
    ========================================================= */
 async function prepararDesde(t) {
@@ -559,6 +652,10 @@ async function reproducir(desde = 0, alEmpezar = null) {
     s.start(origen + Math.max(0, it.inicio - desde), Math.max(0, desde - it.inicio));
     V.extras.push(s);
   }
+  const musica = programarMusica(ac, bajadaMusica, V.plan, origen, desde);
+  if (musica) V.extras.push(musica);
+  bajadaMusica.gain.value = 1;
+  V.hablaHasta = 0;
   V.origen = origen;
   V.desde = desde;
   V.reproduciendo = true;
@@ -584,6 +681,16 @@ function bucleVideo() {
       if (!v.paused) v.pause();
       it.clip.ganancia.gain.setTargetAtTime(0, ahora, 0.015);
     }
+  }
+  // Bajar la música cuando se habla
+  if (V.musica) {
+    const datos = V.datosAnalisis || (V.datosAnalisis = new Float32Array(analizador.fftSize));
+    analizador.getFloatTimeDomainData(datos);
+    let suma = 0;
+    for (let i = 0; i < datos.length; i++) suma += datos[i] * datos[i];
+    if (Math.sqrt(suma / datos.length) > 0.02) V.hablaHasta = ahora + 0.3;
+    const bajar = $('vBajarMusica').checked && ahora < V.hablaHasta;
+    bajadaMusica.gain.setTargetAtTime(bajar ? BAJADA : 1, ahora, bajar ? 0.05 : 0.4);
   }
   dibujarFotograma(t);
   actualizarTiempo(t);
@@ -680,6 +787,12 @@ async function audioDelMontaje() {
     s.connect(g); g.connect(off.destination);
     if (it.tipo === 'clip') {
       s.playbackRate.value = plan.vel;
+      g.gain.value = 1;
+      const volOriginal = off.createGain();
+      volOriginal.gain.value = $('vVolOriginal').value / 100;
+      g.disconnect();
+      g.connect(volOriginal);
+      volOriginal.connect(off.destination);
       const fin = it.inicio + it.dur;
       const puntos = [it.inicio, it.inicio + (it.tr ? it.tr.d : 0), fin - (it.sig && it.sig.tr ? it.sig.tr.d : 0), fin];
       let ultimo = it.inicio;
@@ -694,7 +807,42 @@ async function audioDelMontaje() {
       s.start(it.inicio);
     }
   }
-  return off.startRendering();
+  const mezcla = await off.startRendering();
+  if (!V.musica) return mezcla;
+
+  // Música: se crea aparte y se suma, bajándola donde hay voz
+  const offM = new OfflineAudioContext(2, mezcla.length, sr);
+  const m = programarMusica(offM, offM.destination, plan, 0, 0);
+  if (!m) return mezcla;
+  const musica = await offM.startRendering();
+  const vol = $('vVolMusica').value / 100;
+  const bajada = $('vBajarMusica').checked ? envolventeBajada(mezcla) : null;
+  const ventana = Math.round(sr * 0.02);
+  for (let c = 0; c < 2; c++) {
+    const a = mezcla.getChannelData(c), b = musica.getChannelData(c);
+    for (let i = 0; i < a.length; i++) a[i] += b[i] * vol * (bajada ? bajada[(i / ventana) | 0] : 1);
+  }
+  return mezcla;
+}
+
+/* Calcula, cada 20 ms, cuánto hay que bajar la música (igual que en directo) */
+function envolventeBajada(buffer) {
+  const sr = buffer.sampleRate, ventana = Math.round(sr * 0.02);
+  const n = Math.ceil(buffer.length / ventana);
+  const izq = buffer.getChannelData(0), der = buffer.getChannelData(buffer.numberOfChannels - 1);
+  const g = new Float32Array(n);
+  const ataque = 1 - Math.exp(-0.02 / 0.05), suelta = 1 - Math.exp(-0.02 / 0.4);
+  let valor = 1, hablaHasta = -1;
+  for (let v = 0; v < n; v++) {
+    let suma = 0;
+    const fin = Math.min(buffer.length, (v + 1) * ventana);
+    for (let i = v * ventana; i < fin; i++) { const x = (izq[i] + der[i]) / 2; suma += x * x; }
+    if (Math.sqrt(suma / Math.max(1, fin - v * ventana)) > 0.02) hablaHasta = v + 15;   // 0,3 s
+    const objetivo = v <= hablaHasta ? BAJADA : 1;
+    valor += (objetivo - valor) * (objetivo < valor ? ataque : suelta);
+    g[v] = valor;
+  }
+  return g;
 }
 
 $('vExportarAudio').addEventListener('click', async () => {

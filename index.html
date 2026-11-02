@@ -74,6 +74,27 @@
       </div>
       <p class="ayuda">Suena la sintonía con una cortinilla del logo.</p>
 
+      <h2>🎵 Música de fondo</h2>
+      <div class="fila" style="margin-top:0">
+        <label class="boton" for="vMusicaArchivo">🎵 Elegir música</label>
+        <input type="file" id="vMusicaArchivo" accept="audio/*" hidden>
+        <button id="vQuitarMusica" class="secundario pequeno" hidden>✕ Quitar</button>
+      </div>
+      <p id="vMusicaNombre" class="ayuda">Sin música. Sonará desde el primer clip hasta el último (no encima de la entradilla).</p>
+      <div id="vMusicaAjustes" hidden>
+        <label>Volumen de la música: <b id="vValMusica">30</b> %
+          <input type="range" id="vVolMusica" min="0" max="100" value="30">
+        </label>
+        <label>Empezar la canción en el segundo: <b id="vValMusIni">0</b>
+          <input type="range" id="vMusIni" min="0" max="0" step="1" value="0">
+        </label>
+        <label class="en-linea"><input type="checkbox" id="vBajarMusica" checked> Bajar la música cuando se habla</label>
+        <label class="en-linea"><input type="checkbox" id="vRepetirMusica" checked> Repetir la canción si es más corta que el vídeo</label>
+      </div>
+      <label>Volumen del sonido de los vídeos: <b id="vValOriginal">100</b> %
+        <input type="range" id="vVolOriginal" min="0" max="150" value="100">
+      </label>
+
       <h2>🔀 Transiciones</h2>
       <label>Duración: <b id="vValTrans">1.0</b> s
         <input type="range" id="vDurTrans" min="0.3" max="3" step="0.1" value="1">
@@ -106,7 +127,7 @@
 
       <h2>🏷️ Logos (esquina inferior derecha)</h2>
       <div id="vListaLogos"></div>
-      <label>Tamaño <input type="range" id="vTamLogo" min="8" max="35" value="18"></label>
+      <label>Tamaño <input type="range" id="vTamLogo" min="5" max="30" value="12"></label>
       <label class="en-linea"><input type="checkbox" id="vFondoLogo" checked> Fondo blanco detrás de los logos</label>
     </div>
 
