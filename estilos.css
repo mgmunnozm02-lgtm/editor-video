@@ -1,0 +1,301 @@
+/* =========================================================
+   ESTUDIO RADIO PIKOTA · Estilos
+   Colores sacados del logo de Radio Pikota
+   ========================================================= */
+:root {
+  --guinda: #A3414D;
+  --cereza: #BF4858;
+  --naranja: #CB5F35;
+  --ambar: #C88E3B;
+  --oliva: #8C9247;
+  --crema: #FDF9F6;
+  --tinta: #3b2a2c;
+  --gris: #7a6a6c;
+  --degradado: linear-gradient(90deg, var(--guinda), var(--cereza) 25%, var(--naranja) 50%, var(--ambar) 75%, var(--oliva));
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--tinta);
+  background-color: var(--crema);
+  /* Manchas de acuarela suaves, como en el logo */
+  background-image:
+    radial-gradient(circle at 8% 20%, rgba(191,72,88,.10), transparent 30%),
+    radial-gradient(circle at 92% 12%, rgba(200,142,59,.12), transparent 28%),
+    radial-gradient(circle at 85% 85%, rgba(140,146,71,.10), transparent 30%),
+    radial-gradient(circle at 15% 90%, rgba(203,95,53,.08), transparent 28%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* ---------- Cabecera ---------- */
+.cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 24px;
+  background: #fff;
+}
+.marca { display: flex; align-items: center; gap: 14px; }
+.marca img { height: 64px; }
+.marca h1 {
+  margin: 0;
+  font-size: 1.7rem;
+  font-weight: 800;
+  background: var(--degradado);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.marca p { margin: 2px 0 0; color: var(--gris); font-size: .9rem; }
+.franja { height: 6px; background: var(--degradado); }
+
+.pestanas { display: flex; gap: 6px; }
+.pestana {
+  background: var(--crema);
+  color: var(--guinda);
+  border: 2px solid var(--guinda);
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 10px 22px;
+}
+.pestana.activa { background: var(--guinda); color: #fff; }
+
+main { max-width: 1300px; margin: 18px auto 40px; padding: 0 16px; }
+.panel-pestana { display: none; }
+.panel-pestana.activo { display: block; }
+
+/* ---------- Tarjetas y rejillas ---------- */
+.tarjeta {
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(163,65,77,.08);
+  border: 1px solid #f1e4df;
+  margin-bottom: 16px;
+}
+.rejilla-video { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+.rejilla-video .tarjeta { margin-bottom: 0; }
+.rejilla-podcast { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 16px; }
+.ancho { grid-column: 1 / -1; }
+@media (max-width: 900px) {
+  .rejilla-video, .rejilla-podcast { grid-template-columns: 1fr; }
+}
+
+h2 { font-size: 1rem; margin: 18px 0 8px; color: var(--guinda); }
+.tarjeta > h2:first-child, .ajustes h2:first-child { margin-top: 0; }
+label { display: block; margin: 6px 0; font-size: .9rem; }
+label.en-linea { display: inline-flex; align-items: center; gap: 6px; }
+input[type=range] { width: 100%; accent-color: var(--naranja); }
+input[type=checkbox] { accent-color: var(--guinda); }
+input[type=text], select {
+  width: 100%;
+  padding: 7px 8px;
+  font-size: .95rem;
+  border: 1px solid #e3d3cd;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--tinta);
+}
+select.auto { width: auto; }
+.ayuda { font-size: .82rem; color: var(--gris); margin: 4px 0 8px; }
+.centrado { text-align: center; margin-top: -8px; }
+.estado { font-size: .9rem; color: var(--gris); min-height: 1.2em; }
+.tiempo { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--guinda); }
+
+/* ---------- Botones ---------- */
+button, .boton {
+  background: var(--guinda);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-size: .92rem;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-block;
+  transition: transform .1s, filter .15s;
+}
+button:hover:not(:disabled), .boton:hover { filter: brightness(1.1); }
+button:active:not(:disabled) { transform: scale(.97); }
+button:disabled { background: #d9cfcc; cursor: not-allowed; }
+button.secundario { background: #fff; color: var(--guinda); border: 1.5px solid var(--guinda); }
+button.secundario:disabled { color: #bbb; border-color: #ddd; }
+button.exportar { background: var(--naranja); }
+button.pequeno { padding: 6px 10px; font-size: .82rem; margin-top: 4px; }
+button.grabar { background: var(--cereza); }
+button.grabar.activo { animation: latido 1s infinite; background: #d6213a; }
+button.interruptor { background: #fff; color: var(--guinda); border: 1.5px solid var(--guinda); }
+button.interruptor.activo { background: var(--guinda); color: #fff; }
+@keyframes latido { 50% { box-shadow: 0 0 0 6px rgba(214,33,58,.25); } }
+
+.fila { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.herramientas { margin-top: 0; }
+.separador { width: 1px; height: 28px; background: #ecdcd6; margin: 0 4px; }
+.zoom { margin-left: auto; min-width: 140px; }
+
+progress { width: 100%; height: 12px; margin-top: 10px; accent-color: var(--naranja); }
+
+/* ---------- Pestaña Vídeo ---------- */
+#lienzoVideo {
+  width: 100%;
+  height: auto;
+  background: #1d1416;
+  border-radius: 12px;
+  display: block;
+}
+.barra-tiempo {
+  height: 8px;
+  background: #f1e4df;
+  border-radius: 6px;
+  margin-top: 10px;
+  cursor: pointer;
+  overflow: hidden;
+}
+#vBarraRelleno { height: 100%; width: 0; background: var(--degradado); }
+
+.lista-clips { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.clip-video {
+  display: grid;
+  grid-template-columns: 96px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px;
+  border-radius: 12px;
+  border: 2px solid #f1e4df;
+  background: var(--crema);
+  cursor: pointer;
+}
+.clip-video.seleccionado { border-color: var(--cereza); background: #fff; }
+.clip-video img { width: 96px; height: 54px; object-fit: cover; border-radius: 8px; background: #000; }
+.clip-video .nombre { font-weight: 600; font-size: .9rem; word-break: break-all; }
+.clip-video .info { font-size: .8rem; color: var(--gris); }
+.clip-video .acciones button { padding: 4px 8px; font-size: .85rem; }
+.clip-video .recorte { grid-column: 1 / -1; }
+.transicion-entre {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: .82rem;
+  color: var(--gris);
+}
+.transicion-entre select { width: auto; padding: 3px 6px; font-size: .82rem; }
+
+.logo-opcion { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+.logo-opcion img { height: 28px; background: #f3eeee; border-radius: 4px; padding: 2px; }
+
+/* ---------- Pestaña Podcast: línea de tiempo ---------- */
+.linea-tiempo { display: flex; padding: 0; overflow: hidden; }
+.cabeceras-pistas { width: 170px; flex-shrink: 0; border-right: 1px solid #f1e4df; background: var(--crema); }
+.cabeceras-pistas .hueco-regla { height: 28px; border-bottom: 1px solid #f1e4df; }
+.cabecera-pista {
+  height: 84px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #f1e4df;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+.cabecera-pista .titulo { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: .9rem; }
+.cabecera-pista button { padding: 2px 7px; font-size: .8rem; background: #fff; color: var(--guinda); border: 1px solid #e3d3cd; }
+.cabecera-pista button.activo { background: var(--guinda); color: #fff; }
+.cabecera-pista input[type=range] { margin: 0; }
+
+.zona-scroll { flex: 1; overflow-x: auto; overflow-y: hidden; position: relative; }
+.contenido { position: relative; min-width: 100%; }
+#pRegla { display: block; cursor: pointer; border-bottom: 1px solid #f1e4df; }
+.carril {
+  position: relative;
+  height: 84px;
+  border-bottom: 1px solid #f1e4df;
+  background-image: repeating-linear-gradient(90deg, transparent 0, transparent calc(var(--px-seg) * 5 - 1px), #f6ece8 calc(var(--px-seg) * 5 - 1px), #f6ece8 calc(var(--px-seg) * 5));
+}
+.carril.encima { background-color: #fff6f2; }
+
+.clip-audio {
+  position: absolute;
+  top: 6px;
+  height: 72px;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: grab;
+  border: 2px solid transparent;
+  box-shadow: 0 1px 3px rgba(0,0,0,.15);
+  user-select: none;
+  touch-action: none;
+}
+.clip-audio.voces   { background: #f6dfe2; }
+.clip-audio.musica  { background: #f9e6d6; }
+.clip-audio.efectos { background: #eceed8; }
+.clip-audio.seleccionado { border-color: var(--guinda); box-shadow: 0 0 0 3px rgba(163,65,77,.25); }
+.clip-audio canvas { position: absolute; inset: 18px 0 0 0; width: 100%; height: calc(100% - 18px); }
+.clip-audio .etiqueta {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 18px;
+  padding: 1px 8px;
+  font-size: .72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #fff;
+  background: rgba(163,65,77,.85);
+}
+.clip-audio.musica .etiqueta { background: rgba(203,95,53,.85); }
+.clip-audio.efectos .etiqueta { background: rgba(140,146,71,.9); }
+.asa { position: absolute; top: 0; bottom: 0; width: 8px; cursor: ew-resize; z-index: 2; }
+.asa:hover { background: rgba(163,65,77,.3); }
+.asa.izq { left: 0; }
+.asa.der { right: 0; }
+
+.cabezal {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #d6213a;
+  pointer-events: none;
+  z-index: 5;
+}
+.cabezal::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -6px;
+  border: 7px solid transparent;
+  border-top: 10px solid #d6213a;
+}
+
+.sonidos { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.sonidos button { background: var(--crema); color: var(--tinta); border: 1.5px solid #ecdcd6; text-align: left; }
+.sonidos button:hover { border-color: var(--ambar); }
+
+/* ---------- Aviso flotante ---------- */
+.aviso {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translate(-50%, 120px);
+  background: var(--tinta);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: .95rem;
+  transition: transform .3s;
+  z-index: 100;
+  max-width: 90vw;
+}
+.aviso.visible { transform: translate(-50%, 0); }
+.aviso.ok { background: var(--oliva); }
+.aviso.error { background: #b3261e; }
+
+/* Botones desactivados (va al final para que siempre se note) */
+button:disabled:not(.secundario) { background: #d9cfcc; color: #fff; }
